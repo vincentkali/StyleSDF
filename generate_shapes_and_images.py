@@ -59,16 +59,27 @@ def generate(opt, g_ema, surface_g_ema, device, mean_latent, surface_mean_latent
         num_viewdirs = opt.num_views_per_id
 
     # generate images
+    camera_paras_list = []
+    sample_z_list = []
     for i in tqdm(range(opt.identities)):
         with torch.no_grad():
             chunk = 8
             sample_z = torch.randn(1, opt.style_dim, device=device).repeat(num_viewdirs,1)
+            sample_z_list.append(sample_z.tolist())
             sample_cam_extrinsics, sample_focals, sample_near, sample_far, sample_locations = \
             generate_camera_params(opt.renderer_output_size, device, batch=num_viewdirs,
                                    locations=locations, #input_fov=fov,
                                    uniform=opt.camera.uniform, azim_range=opt.camera.azim,
                                    elev_range=opt.camera.elev, fov_ang=fov,
                                    dist_radius=opt.camera.dist_radius)
+            para = {
+                "sample_cam_extrinsics": sample_cam_extrinsics.tolist(),
+                "sample_focals": sample_focals.tolist(),
+                "sample_near": sample_near.tolist(),
+                "sample_far": sample_far.tolist(),
+                "sample_locations": sample_locations.tolist()
+            }
+            camera_paras_list.append(para)
             rgb_images = torch.Tensor(0, 3, opt.size, opt.size)
             rgb_images_thumbs = torch.Tensor(0, 3, opt.renderer_output_size, opt.renderer_output_size)
             for j in range(0, num_viewdirs, chunk):
@@ -83,6 +94,7 @@ def generate(opt, g_ema, surface_g_ema, device, mean_latent, surface_mean_latent
                 rgb_images = torch.cat([rgb_images, out[0].cpu()], 0)
                 rgb_images_thumbs = torch.cat([rgb_images_thumbs, out[1].cpu()], 0)
 
+            print(rgb_images.shape)
             utils.save_image(rgb_images,
                 os.path.join(opt.results_dst_dir, 'images','{}.png'.format(str(i).zfill(7))),
                 nrow=num_viewdirs,
@@ -151,6 +163,7 @@ def generate(opt, g_ema, surface_g_ema, device, mean_latent, surface_mean_latent
                                 with open(marching_cubes_mesh_filename, 'w') as f:
                                     marching_cubes_mesh.export(f,file_type='obj')
 
+    return (camera_paras_list, sample_z_list)
 
 if __name__ == "__main__":
     device = "cuda"
