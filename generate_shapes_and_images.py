@@ -61,6 +61,7 @@ def generate(opt, g_ema, surface_g_ema, device, mean_latent, surface_mean_latent
     # generate images
     camera_paras_list = []
     sample_z_list = []
+    # for i in tqdm(range(opt.identities), total=opt.identities, position=0, leave=True):
     for i in tqdm(range(opt.identities)):
         with torch.no_grad():
             chunk = 8
@@ -94,7 +95,6 @@ def generate(opt, g_ema, surface_g_ema, device, mean_latent, surface_mean_latent
                 rgb_images = torch.cat([rgb_images, out[0].cpu()], 0)
                 rgb_images_thumbs = torch.cat([rgb_images_thumbs, out[1].cpu()], 0)
 
-            print(rgb_images.shape)
             utils.save_image(rgb_images,
                 os.path.join(opt.results_dst_dir, 'images','{}.png'.format(str(i).zfill(7))),
                 nrow=num_viewdirs,

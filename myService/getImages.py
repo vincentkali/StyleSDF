@@ -8,7 +8,6 @@ from options import BaseOptions
 from model import Generator
 from generate_shapes_and_images import generate
 from render_video import render_video
-import subprocess
 
 
 class GetImages():
@@ -67,12 +66,6 @@ class GetImages():
         self.storeJson(mean_latent, "mean_latent")
         
         self.storeJson(surface_mean_latent, "surface_mean_latent")
-
-        """
-        split
-
-        """
-        self.splitImages()
 
     def loadSavedModel(self):
         # Load saved model
@@ -173,9 +166,6 @@ class GetImages():
 
         with open(f'{newpath}{objName}.json', 'w') as j:
             json.dump(obj , j)
-
-    def splitImages(self):
-        subprocess.call([r'..\myScript\splitImageThumb.bat'])
 
 if __name__ == "__main__":
     getImages = GetImages()

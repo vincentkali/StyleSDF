@@ -12,6 +12,8 @@ import PIL.Image as Image
 import matplotlib.pyplot as plt
 import torch.nn as nn
 import torch.nn.functional as F
+import subprocess
+
 
 from myService.myModel import ConvM, ConvNet, MLP
 from myService.myDataset import MyDataset
