@@ -30,8 +30,9 @@ class MyDataset(Dataset):
             self.transforms = default_transform
         else:
             self.transforms = transforms_
-
+        print('===== MyDataset Info =====')
         print('number of total data:{}'.format(len(self.camera_paras)))
+        print()
 
     def __len__(self):
         return len(self.camera_paras)
@@ -48,7 +49,7 @@ class MyDataset(Dataset):
         image = image.convert('RGB')
 
         # camera_paras = self.camera_paras[idx]["sample_cam_extrinsics"]
-        z = self.z[idx]
+        z = self.z[idx][0]
         
         # Convert PIL label image to torch.Tensor
         image = self.transforms(image)

@@ -1,4 +1,5 @@
 import torch.nn as nn
+import torch.nn.functional as F
 
 class SimpleCNN(nn.Module):
     def __init__(self):
@@ -31,24 +32,20 @@ class ConvM(nn.Sequential):
         )
         
 class ConvNet(nn.Module):
-    
-    def __init__(self):
+    def __init__(self, n_class=3):
         super(ConvNet, self).__init__()
         
-        self.conv = nn.Sequential(           
-            ConvM(1, 32, 3, 1),
-            ConvM(32, 64, 3, 1),
+        self.conv = nn.Sequential(
+            ConvM(3, 32, 5, 2),
+            ConvM(32, 64, 5, 2),
             ConvM(64, 128, 3, 1),
             ConvM(128, 64, 3, 1),
             ConvM(64, 32, 3, 1),
         )        
-        self.fc = nn.Linear(32, 10)
+        self.fc = nn.Linear(32, n_class)
     def forward(self, x):
-        # x: batch* channel * w * h
         x = self.conv(x)
-        # x: batch* channel * w * h
         x = nn.functional.adaptive_avg_pool2d(x, 1).reshape(x.shape[0], -1)
-        # x: batch* channel 
         ft = x
         output = self.fc(x)
         return output
@@ -58,15 +55,15 @@ class MLP(nn.Module):
         super(MLP,self).__init__()
         self.fc1 = nn.Linear(3*28*28, 512)
         self.fc2 = nn.Linear(512, 256)
-        self.fc3 = nn.Linear(256, 128)
-        self.fc4 = nn.Linear(128,n_class)
+        # self.fc3 = nn.Linear(256, 128)
+        # self.fc4 = nn.Linear(128,n_class)
         self.droput = nn.Dropout(0.2)
         
     def forward(self,x):
         x = x.view(-1,3*28*28)
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
-        x = F.relu(self.fc3(x))
-        x = self.droput(x)
-        x = self.fc4(x)
+        # x = F.relu(self.fc3(x))
+        # x = self.droput(x)
+        # x = self.fc4(x)
         return x
