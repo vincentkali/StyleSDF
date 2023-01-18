@@ -6,3 +6,4 @@ evaluations/
 full_models/
 pretrained_renderer/
 wandb/
+result/

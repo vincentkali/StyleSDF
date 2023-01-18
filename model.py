@@ -28,7 +28,6 @@ class PixelNorm(nn.Module):
     def forward(self, input):
         return input * torch.rsqrt(torch.mean(input ** 2, dim=1, keepdim=True) + 1e-8)
 
-
 class MappingLinear(nn.Module):
     def __init__(self, in_dim, out_dim, bias=True, activation=None, is_last=False):
         super().__init__()
@@ -60,7 +59,6 @@ class MappingLinear(nn.Module):
             f"{self.__class__.__name__}({self.weight.shape[1]}, {self.weight.shape[0]})"
         )
 
-
 def make_kernel(k):
     k = torch.tensor(k, dtype=torch.float32)
 
@@ -70,7 +68,6 @@ def make_kernel(k):
     k /= k.sum()
 
     return k
-
 
 class Upsample(nn.Module):
     def __init__(self, kernel, factor=2):
@@ -92,7 +89,6 @@ class Upsample(nn.Module):
 
         return out
 
-
 class Downsample(nn.Module):
     def __init__(self, kernel, factor=2):
         super().__init__()
@@ -113,7 +109,6 @@ class Downsample(nn.Module):
 
         return out
 
-
 class Blur(nn.Module):
     def __init__(self, kernel, pad, upsample_factor=1):
         super().__init__()
@@ -131,7 +126,6 @@ class Blur(nn.Module):
         out = upfirdn2d(input, self.kernel, pad=self.pad)
 
         return out
-
 
 class EqualConv2d(nn.Module):
     def __init__(
@@ -170,7 +164,6 @@ class EqualConv2d(nn.Module):
             f" {self.weight.shape[2]}, stride={self.stride}, padding={self.padding})"
         )
 
-
 class EqualLinear(nn.Module):
     def __init__(self, in_dim, out_dim, bias=True, bias_init=0, lr_mul=1,
                  activation=None):
@@ -204,7 +197,6 @@ class EqualLinear(nn.Module):
         return (
             f"{self.__class__.__name__}({self.weight.shape[1]}, {self.weight.shape[0]})"
         )
-
 
 class ModulatedConv2d(nn.Module):
     def __init__(self, in_channel, out_channel, kernel_size, style_dim, demodulate=True,
@@ -294,7 +286,6 @@ class ModulatedConv2d(nn.Module):
             out = out.view(batch, self.out_channel, height, width)
 
         return out
-
 
 class NoiseInjection(nn.Module):
     def __init__(self, project=False):
@@ -386,7 +377,6 @@ class NoiseInjection(nn.Module):
 
         return image + self.weight * noise
 
-
 class StyledConv(nn.Module):
     def __init__(self, in_channel, out_channel, kernel_size, style_dim,
                  upsample=False, blur_kernel=[1, 3, 3, 1], project_noise=False):
@@ -412,7 +402,6 @@ class StyledConv(nn.Module):
 
         return out
 
-
 class ToRGB(nn.Module):
     def __init__(self, in_channel, style_dim, upsample=True, blur_kernel=[1, 3, 3, 1]):
         super().__init__()
@@ -436,7 +425,6 @@ class ToRGB(nn.Module):
             out = out + skip
 
         return out
-
 
 class ConvLayer(nn.Sequential):
     def __init__(self, in_channel, out_channel, kernel_size, downsample=False,
@@ -473,7 +461,6 @@ class ConvLayer(nn.Sequential):
             layers.append(FusedLeakyReLU(out_channel, bias=bias))
 
         super().__init__(*layers)
-
 
 class Decoder(nn.Module):
     def __init__(self, model_opt, blur_kernel=[1, 3, 3, 1]):
@@ -637,7 +624,6 @@ class Decoder(nn.Module):
 
         return image, out_latent
 
-
 class Generator(nn.Module):
     def __init__(self, model_opt, renderer_opt, blur_kernel=[1, 3, 3, 1], ema=False, full_pipeline=True):
         super().__init__()
@@ -787,7 +773,6 @@ class VolumeRenderDiscConv2d(nn.Module):
 
         return out
 
-
 class AddCoords(nn.Module):
     def __init__(self):
         super(AddCoords, self).__init__()
@@ -813,7 +798,6 @@ class AddCoords(nn.Module):
 
         return out
 
-
 class CoordConv2d(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, stride=1,
                  padding=0, bias=True):
@@ -833,7 +817,6 @@ class CoordConv2d(nn.Module):
         out = self.conv(out)
 
         return out
-
 
 class CoordConvLayer(nn.Module):
     def __init__(self, in_channel, out_channel, kernel_size, bias=True, activate=True):
@@ -859,7 +842,6 @@ class CoordConvLayer(nn.Module):
             out = self.activation(out)
 
         return out
-
 
 class VolumeRenderResBlock(nn.Module):
     def __init__(self, in_channel, out_channel):
@@ -888,7 +870,6 @@ class VolumeRenderResBlock(nn.Module):
         out = (out + skip_in) / math.sqrt(2)
 
         return out
-
 
 class VolumeRenderDiscriminator(nn.Module):
     def __init__(self, opt):
@@ -952,7 +933,6 @@ class ResBlock(nn.Module):
         out = (out + self.skip(input)) / math.sqrt(2)
 
         return out
-
 
 class Discriminator(nn.Module):
     def __init__(self, opt, blur_kernel=[1, 3, 3, 1]):
