@@ -9,7 +9,7 @@ class MyDataset(Dataset):
     '''
     load the dataset
     '''
-    def __init__(self, transforms_ = None):
+    def __init__(self, transform = None):
         camera_json_path = '.\json\camera_paras.json'
         z_json_path = '.\json\sample_z.json'
         
@@ -27,9 +27,9 @@ class MyDataset(Dataset):
         self.z = z
 
         if transforms == None:
-            self.transforms = default_transform
+            self.transform = default_transform
         else:
-            self.transforms = transforms_
+            self.transform = transform
         print('===== MyDataset Info =====')
         print('number of total data:{}'.format(len(self.camera_paras)))
         print()
@@ -52,7 +52,7 @@ class MyDataset(Dataset):
         z = self.z[idx][0]
         
         # Convert PIL label image to torch.Tensor
-        image = self.transforms(image)
+        image = self.transform(image)
         
         # label = [camera_paras, z]
         # label = torch.tensor(label)
