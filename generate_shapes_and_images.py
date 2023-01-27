@@ -165,47 +165,23 @@ def generate(opt, g_ema, surface_g_ema, device, mean_latent, surface_mean_latent
 
     return (camera_paras_list, sample_z_list)
 
-def generateImage(opt, g_ema, surface_g_ema, device, mean_latent, surface_mean_latent):
+def generateImage(opt, g_ema, surface_g_ema, device, mean_latent, surface_mean_latent, location):
     g_ema.eval()
     if not opt.no_surface_renderings:
         surface_g_ema.eval()
 
-    # set camera angles
-    if opt.fixed_camera_angles:
-        # These can be changed to any other specific viewpoints.
-        # You can add or remove viewpoints as you wish
-        locations = torch.tensor([[0, 0],
-                                  [-1.5 * opt.camera.azim, 0],
-                                  [-1 * opt.camera.azim, 0],
-                                  [-0.5 * opt.camera.azim, 0],
-                                  [0.5 * opt.camera.azim, 0],
-                                  [1 * opt.camera.azim, 0],
-                                  [1.5 * opt.camera.azim, 0],
-                                  [0, -1.5 * opt.camera.elev],
-                                  [0, -1 * opt.camera.elev],
-                                  [0, -0.5 * opt.camera.elev],
-                                  [0, 0.5 * opt.camera.elev],
-                                  [0, 1 * opt.camera.elev],
-                                  [0, 1.5 * opt.camera.elev]], device=device)
-        # For zooming in/out change the values of fov
-        # (This can be defined for each view separately via a custom tensor
-        # like the locations tensor above. Tensor shape should be [locations.shape[0],1])
-        # reasonable values are [0.75 * opt.camera.fov, 1.25 * opt.camera.fov]
-        fov = opt.camera.fov * torch.ones((locations.shape[0],1), device=device)
-        num_viewdirs = locations.shape[0]
-    else: # draw random camera angles
-        locations = None
-        # fov = None
-        fov = opt.camera.fov
-        num_viewdirs = opt.num_views_per_id
-
+    locations = torch.tensor([location], device=device)
+    # fov = None
+    fov = opt.camera.fov
+    num_viewdirs = 1
     # generate images
     camera_paras_list = []
     sample_z_list = []
+    locations_list = []
     # for i in tqdm(range(opt.identities), total=opt.identities, position=0, leave=True):
     for i in tqdm(range(opt.identities)):
         with torch.no_grad():
-            chunk = 8
+            chunk = 4
             sample_z = torch.randn(1, opt.style_dim, device=device).repeat(num_viewdirs,1)
             sample_z_list.append(sample_z.tolist())
             sample_cam_extrinsics, sample_focals, sample_near, sample_far, sample_locations = \
@@ -222,6 +198,7 @@ def generateImage(opt, g_ema, surface_g_ema, device, mean_latent, surface_mean_l
                 "sample_locations": sample_locations.tolist()
             }
             camera_paras_list.append(para)
+            locations_list.append(locations.tolist())
             rgb_images = torch.Tensor(0, 3, opt.size, opt.size)
             rgb_images_thumbs = torch.Tensor(0, 3, opt.renderer_output_size, opt.renderer_output_size)
             for j in range(0, num_viewdirs, chunk):
@@ -237,14 +214,16 @@ def generateImage(opt, g_ema, surface_g_ema, device, mean_latent, surface_mean_l
                 rgb_images_thumbs = torch.cat([rgb_images_thumbs, out[1].cpu()], 0)
 
             utils.save_image(rgb_images,
-                os.path.join(opt.results_dst_dir, 'images','{}.png'.format(str(i).zfill(7))),
+                # os.path.join(opt.results_dst_dir, 'images',f'{str(i).zfill(7)}.png'),
+                os.path.join('./result', 'images',f'{str(i).zfill(7)}.png'),
                 nrow=num_viewdirs,
                 normalize=True,
                 padding=0,
                 value_range=(-1, 1),)
 
             utils.save_image(rgb_images_thumbs,
-                os.path.join(opt.results_dst_dir, 'images','{}_thumb.png'.format(str(i).zfill(7))),
+                # os.path.join(opt.results_dst_dir, 'images',f'{str(i).zfill(7)}_thumb.png'),
+                os.path.join('./result', 'thumbs',f'{str(i).zfill(7)}_thumb.png'),
                 nrow=num_viewdirs,
                 normalize=True,
                 padding=0,
@@ -254,7 +233,7 @@ def generateImage(opt, g_ema, surface_g_ema, device, mean_latent, surface_mean_l
             del out
             torch.cuda.empty_cache()
 
-    return (camera_paras_list, sample_z_list)
+    return (camera_paras_list, sample_z_list, locations_list)
 
 if __name__ == "__main__":
     device = "cuda"

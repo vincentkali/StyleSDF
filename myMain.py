@@ -1,6 +1,7 @@
 import warnings
 warnings.filterwarnings("ignore")
 
+import os
 import json
 import torch
 from torch import optim
@@ -17,7 +18,7 @@ from generate_shapes_and_images import generate
 
 
 
-from myService.myModel import ConvM, ConvNet, MLP
+from myService.myModel import *
 from myService.myDataset import MyDataset
 from myService.myUtils import my_collate
 from myService.getImages import GetImages
@@ -27,7 +28,8 @@ class MyMain():
     def __init__(self):
         # config #
         self.use_cuda=True
-        self.dataPath = '.\result\thumbs'
+        self.dataPath = './result/thumbs'
+        self.model_save_dir = './result/model'
         self.learningRate = 0.01
 
         # set device #
@@ -42,18 +44,30 @@ class MyMain():
         self.initLoss()
         self.initOptmizer()
         self.encoderUsed_list_map = {
-            "simpleMLP": self.model_mlp
+            "simpleMLP": self.model_mlp,
+            "CNN": self.model_cnn,
         }
+
+    def saveModel(self, model, modelName):
+        model_path = os.path.join(self.model_save_dir, f'{modelName}.ckpt')
+        torch.save(model.state_dict(), model_path)
+        print(f'Saved {modelName} into {self.model_save_dir}...')
+
+    def loadModelState(self, model, modelName):
+        print(f'Loading the trained models {modelName}')
+        model_path = os.path.join(self.model_save_dir, f'{modelName}.ckpt')
+        model.load_state_dict(torch.load(model_path, map_location=lambda storage, loc: storage))
 
     def initModel(self):
         self.model_mlp = MLP(n_class=3).to(self.device)
-        self.model_cnn = ConvNet(n_class=3).to(self.device)
+        self.model_convNet = ConvNet(n_class=3).to(self.device)
+        self.model_cnn = CNN().to(self.device)
 
     def initLoss(self):
         self.loss = torch.nn.CrossEntropyLoss().to(self.device)
 
     def initOptmizer(self):
-        self.optimizer = optim.Adam(self.model_mlp.parameters(), lr=self.learningRate)
+        self.optimizer = optim.Adam(self.model_cnn.parameters(), lr=self.learningRate)
 
     def getDataLoader(self, batch_size=5, transform =None):
         # transform = transforms.Compose([
@@ -88,7 +102,7 @@ class MyMain():
         """
         # Config Training List #
         # Diff Encoders
-        encoderUsed_list = ["simpleMLP"]
+        encoderUsed_list = ["CNN"]
 
         # Diff Ways of Loss Function Calculation
         lossWeight_list = [
@@ -250,9 +264,14 @@ class MyMain():
         plt_loss_train_info_list, total_info = self.DiffTrains()
 
 if __name__ == "__main__":
-    # getImages = GetImages()
-    # getImages.main()
+    generateImage = True
+    train = False
 
-    myMain = MyMain()
-    myMain.main()
+    if generateImage:
+        getImages = GetImages()
+        getImages.main()
+
+    if train:
+        myMain = MyMain()
+        myMain.main()
    

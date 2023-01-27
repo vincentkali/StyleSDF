@@ -6,7 +6,7 @@ import numpy as np
 from munch import *
 from options import BaseOptions
 from model import Generator
-from generate_shapes_and_images import generate
+from generate_shapes_and_images import generate, generateImage
 from render_video import render_video
 
 
@@ -15,7 +15,7 @@ class GetImages():
         torch.random.manual_seed(234)
         # torch.random.manual_seed(321)
         self.device = "cuda"
-        self.inference_identities = 10
+        self.inference_identities = 1
 
         self.opt = BaseOptions().parse()
         self.opt.camera.uniform = True
@@ -48,7 +48,8 @@ class GetImages():
         surface_g_ema = self.loadVolumnRender()
         
         mean_latent, surface_mean_latent = self.getMeanLatentVector(g_ema)
-        camera_paras_list, sample_z_list = self.generate(g_ema, surface_g_ema, mean_latent, surface_mean_latent)
+        mean_latent = None
+        camera_paras_list, sample_z_list, locations_list = self.generate(g_ema, surface_g_ema, mean_latent, surface_mean_latent)
         
         """
         storeJson
@@ -57,12 +58,14 @@ class GetImages():
 
         self.storeJson(camera_paras_list, "camera_paras")
         self.storeJson(sample_z_list, "sample_z")
+        self.storeJson(locations_list, "locations")
         
         # self.storeJson(g_ema, "g_ema") # model
         self.storeJson(surface_g_ema, "surface_g_ema")
 
-        for i in range(len(mean_latent)):
-            mean_latent[i] = mean_latent[i].tolist()
+        if mean_latent:
+            for i in range(len(mean_latent)):
+                mean_latent[i] = mean_latent[i].tolist()
         self.storeJson(mean_latent, "mean_latent")
         
         self.storeJson(surface_mean_latent, "surface_mean_latent")
@@ -156,8 +159,10 @@ class GetImages():
         return (mean_latent, surface_mean_latent)
 
     def generate(self, g_ema, surface_g_ema, mean_latent, surface_mean_latent):
-        camera_paras_list, sample_z_list = generate(self.opt.inference, g_ema, surface_g_ema, self.device, mean_latent, surface_mean_latent)
-        return (camera_paras_list, sample_z_list)
+        locatoin = [0,0]
+        camera_paras_list, sample_z_list, locations_list = generateImage(self.opt.inference, g_ema, surface_g_ema, self.device, mean_latent, surface_mean_latent, locatoin)
+        # camera_paras_list, sample_z_list = generate(self.opt.inference, g_ema, surface_g_ema, self.device, mean_latent, surface_mean_latent)
+        return (camera_paras_list, sample_z_list, locations_list)
         
     def storeJson(self, obj, objName):
         newpath = './json/'
