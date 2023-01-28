@@ -1,6 +1,7 @@
 import os
 import torch
 import trimesh
+import json
 import numpy as np
 from munch import *
 from PIL import Image
@@ -165,25 +166,26 @@ def generate(opt, g_ema, surface_g_ema, device, mean_latent, surface_mean_latent
 
     return (camera_paras_list, sample_z_list)
 
-def generateImage(opt, g_ema, surface_g_ema, device, mean_latent, surface_mean_latent, location):
+def generateImage(opt, g_ema, surface_g_ema, device, mean_latent, surface_mean_latent):
     g_ema.eval()
-    if not opt.no_surface_renderings:
-        surface_g_ema.eval()
 
-    locations = torch.tensor([location], device=device)
-    # fov = None
+    # init
+    locations = None
     fov = opt.camera.fov
     num_viewdirs = 1
-    # generate images
-    camera_paras_list = []
-    sample_z_list = []
-    locations_list = []
+    # camera_paras_list = []
+    # sample_z_list = []
+
     # for i in tqdm(range(opt.identities), total=opt.identities, position=0, leave=True):
     for i in tqdm(range(opt.identities)):
         with torch.no_grad():
             chunk = 4
+            
+            # latent
             sample_z = torch.randn(1, opt.style_dim, device=device).repeat(num_viewdirs,1)
-            sample_z_list.append(sample_z.tolist())
+            # sample_z_list.append(sample_z.tolist())
+            
+            # camera para
             sample_cam_extrinsics, sample_focals, sample_near, sample_far, sample_locations = \
             generate_camera_params(opt.renderer_output_size, device, batch=num_viewdirs,
                                    locations=locations, #input_fov=fov,
@@ -197,9 +199,10 @@ def generateImage(opt, g_ema, surface_g_ema, device, mean_latent, surface_mean_l
                 "sample_far": sample_far.tolist(),
                 "sample_locations": sample_locations.tolist()
             }
-            camera_paras_list.append(para)
-            locations_list.append(locations.tolist())
-            rgb_images = torch.Tensor(0, 3, opt.size, opt.size)
+            # camera_paras_list.append(para)
+
+            # Generate image
+            # rgb_images = torch.Tensor(0, 3, opt.size, opt.size)
             rgb_images_thumbs = torch.Tensor(0, 3, opt.renderer_output_size, opt.renderer_output_size)
             for j in range(0, num_viewdirs, chunk):
                 out = g_ema([sample_z[j:j+chunk]],
@@ -210,30 +213,35 @@ def generateImage(opt, g_ema, surface_g_ema, device, mean_latent, surface_mean_l
                             truncation=opt.truncation_ratio,
                             truncation_latent=mean_latent)
 
-                rgb_images = torch.cat([rgb_images, out[0].cpu()], 0)
+                # rgb_images = torch.cat([rgb_images, out[0].cpu()], 0)
                 rgb_images_thumbs = torch.cat([rgb_images_thumbs, out[1].cpu()], 0)
 
-            utils.save_image(rgb_images,
-                # os.path.join(opt.results_dst_dir, 'images',f'{str(i).zfill(7)}.png'),
-                os.path.join('./result', 'images',f'{str(i).zfill(7)}.png'),
-                nrow=num_viewdirs,
-                normalize=True,
-                padding=0,
-                value_range=(-1, 1),)
-
+            prepareDatasetPath = "./prepareDataset"
             utils.save_image(rgb_images_thumbs,
-                # os.path.join(opt.results_dst_dir, 'images',f'{str(i).zfill(7)}_thumb.png'),
-                os.path.join('./result', 'thumbs',f'{str(i).zfill(7)}_thumb.png'),
+                os.path.join(prepareDatasetPath, 'thumbs',f'{str(i).zfill(7)}.png'),
                 nrow=num_viewdirs,
                 normalize=True,
                 padding=0,
                 value_range=(-1, 1),)
+            
+            if i == 0:
+                with open(os.path.join(prepareDatasetPath , "json", "camera_paras.json"), 'a') as jsonFile:
+                    json.dump(para , jsonFile)
+                with open(os.path.join(prepareDatasetPath , "json", "sample_z.json"), 'a') as jsonFile:
+                    json.dump(sample_z.tolist() , jsonFile)
+            else:
+                with open(os.path.join(prepareDatasetPath , "json", "camera_paras.json"), 'a') as jsonFile:
+                    jsonFile.write(",")
+                    json.dump(para , jsonFile)
+                with open(os.path.join(prepareDatasetPath , "json", "sample_z.json"), 'a') as jsonFile:
+                    jsonFile.write(",")
+                    json.dump(sample_z.tolist() , jsonFile)
 
             # this is done to fit to RTX2080 RAM size (11GB)
             del out
             torch.cuda.empty_cache()
 
-    return (camera_paras_list, sample_z_list, locations_list)
+    # return (camera_paras_list, sample_z_list)
 
 if __name__ == "__main__":
     device = "cuda"

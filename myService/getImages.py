@@ -15,7 +15,7 @@ class GetImages():
         torch.random.manual_seed(234)
         # torch.random.manual_seed(321)
         self.device = "cuda"
-        self.inference_identities = 1
+        self.inference_identities = 10000
 
         self.opt = BaseOptions().parse()
         self.opt.camera.uniform = True
@@ -37,10 +37,7 @@ class GetImages():
         self.opt.inference.num_views_per_id = 1 # Number of viewpoints generated per identity. This option is ignored if self.opt.inference.fixed_camera_angles is true.
 
     def main(self):
-        """
-        main
-
-        """
+        # main
         model_path = self.loadSavedModel()
         checkpoint = self.createResultDir(model_path)
         
@@ -48,27 +45,36 @@ class GetImages():
         surface_g_ema = self.loadVolumnRender()
         
         mean_latent, surface_mean_latent = self.getMeanLatentVector(g_ema)
-        mean_latent = None
-        camera_paras_list, sample_z_list, locations_list = self.generate(g_ema, surface_g_ema, mean_latent, surface_mean_latent)
-        
-        """
-        storeJson
+        prepareDatasetPath = "prepareDataset"
 
-        """
-
-        self.storeJson(camera_paras_list, "camera_paras")
-        self.storeJson(sample_z_list, "sample_z")
-        self.storeJson(locations_list, "locations")
+        with open(os.path.join(prepareDatasetPath , "json", "camera_paras.json"), 'w') as jsonFile:
+            jsonFile.write("[")
+        with open(os.path.join(prepareDatasetPath , "json", "sample_z.json"), 'w') as jsonFile:
+            jsonFile.write("[")
+        self.generate(g_ema, surface_g_ema, mean_latent, surface_mean_latent)
+        with open(os.path.join(prepareDatasetPath , "json", "camera_paras.json"), 'a') as jsonFile:
+            jsonFile.write("]")
+        with open(os.path.join(prepareDatasetPath , "json", "sample_z.json"), 'a') as jsonFile:
+            jsonFile.write("]")
         
-        # self.storeJson(g_ema, "g_ema") # model
-        self.storeJson(surface_g_ema, "surface_g_ema")
+        # store json
+        # with open(os.path.join(prepareDatasetPath , "json", "camera_paras.json"), 'w') as jsonFile:
+        #     json.dump(camera_paras_list , jsonFile)
+        # with open(os.path.join(prepareDatasetPath , "json", "sample_z.json"), 'w') as jsonFile:
+        #     json.dump(sample_z_list , jsonFile)
 
         if mean_latent:
             for i in range(len(mean_latent)):
                 mean_latent[i] = mean_latent[i].tolist()
-        self.storeJson(mean_latent, "mean_latent")
+        with open(os.path.join(prepareDatasetPath , "json", "mean_latent.json"), 'w') as jsonFile:
+            json.dump(mean_latent , jsonFile)
         
-        self.storeJson(surface_mean_latent, "surface_mean_latent")
+        # self.storeJson(camera_paras_list, os.path.join(prepareDatasetPath , "json", "camera_paras.json"))
+        # self.storeJson(sample_z_list, os.path.join(prepareDatasetPath , "json", "sample_z"))
+        # self.storeJson(mean_latent, "mean_latent")
+        # self.storeJson(surface_g_ema, "surface_g_ema") # None
+        # self.storeJson(surface_mean_latent, "surface_mean_latent") # None
+        pass
 
     def loadSavedModel(self):
         # Load saved model
@@ -107,7 +113,7 @@ class GetImages():
     
     def loadImageGenerationModel(self, checkpoint):
         # Load image generation model
-        g_ema = Generator(self.opt.model, self.opt.rendering).to(self.device)
+        g_ema = Generator(model_opt=self.opt.model, renderer_opt=self.opt.rendering, full_pipeline=True).to(self.device)
         self.pretrained_weights_dict = checkpoint["g_ema"]
         model_dict = g_ema.state_dict()
         for k, v in self.pretrained_weights_dict.items():
@@ -159,10 +165,11 @@ class GetImages():
         return (mean_latent, surface_mean_latent)
 
     def generate(self, g_ema, surface_g_ema, mean_latent, surface_mean_latent):
-        locatoin = [0,0]
-        camera_paras_list, sample_z_list, locations_list = generateImage(self.opt.inference, g_ema, surface_g_ema, self.device, mean_latent, surface_mean_latent, locatoin)
+        # locatoin = [0,0]
+        generateImage(self.opt.inference, g_ema, surface_g_ema, self.device, mean_latent, surface_mean_latent)
         # camera_paras_list, sample_z_list = generate(self.opt.inference, g_ema, surface_g_ema, self.device, mean_latent, surface_mean_latent)
-        return (camera_paras_list, sample_z_list, locations_list)
+        # return (camera_paras_list, sample_z_list)
+        pass
         
     def storeJson(self, obj, objName):
         newpath = './json/'
