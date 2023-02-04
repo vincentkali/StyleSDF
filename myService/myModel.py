@@ -112,12 +112,13 @@ class ResnetEncoder(nn.Module):
             model += [ResidualBlock(dim_in=ngf * mult, dim_out=ngf * mult)]
         
         self.model = nn.Sequential(*model)
+        # 65536
+        self.fc1 = nn.Linear(256 * 16 * 16, 256)
 
-    def forward(self, input):
-        #a = a.view(a.size(0), a.size(1), 1, 1)
-        #a = a.repeat(1, 1, input.size(2), input.size(3))
-        #input = torch.cat([input, a], dim=1)
-        return self.model(input)
+    def forward(self, x):
+        x = self.model(x)
+        x = self.fc1(x)
+        return x
 
 def conv3x3(in_planes: int, out_planes: int, stride: int = 1, groups: int = 1, dilation: int = 1) -> nn.Conv2d:
     """3x3 convolution with padding"""

@@ -74,6 +74,8 @@ def generate(opt, g_ema, surface_g_ema, device, mean_latent, surface_mean_latent
                                    uniform=opt.camera.uniform, azim_range=opt.camera.azim,
                                    elev_range=opt.camera.elev, fov_ang=fov,
                                    dist_radius=opt.camera.dist_radius)
+            print(f'sample_cam_extrinsics: {sample_cam_extrinsics.shape}')
+            print(f'sample_focals: {sample_focals.shape}')
             para = {
                 "sample_cam_extrinsics": sample_cam_extrinsics.tolist(),
                 "sample_focals": sample_focals.tolist(),
@@ -166,7 +168,7 @@ def generate(opt, g_ema, surface_g_ema, device, mean_latent, surface_mean_latent
 
     return (camera_paras_list, sample_z_list)
 
-def generateImage(opt, g_ema, surface_g_ema, device, mean_latent, surface_mean_latent):
+def generateImage(opt, g_ema, device, mean_latent):
     g_ema.eval()
 
     # init
@@ -205,6 +207,12 @@ def generateImage(opt, g_ema, surface_g_ema, device, mean_latent, surface_mean_l
             # rgb_images = torch.Tensor(0, 3, opt.size, opt.size)
             rgb_images_thumbs = torch.Tensor(0, 3, opt.renderer_output_size, opt.renderer_output_size)
             for j in range(0, num_viewdirs, chunk):
+                # print(f'j: {j}')
+                # print(f'num_viewdirs: {num_viewdirs}')
+                # print(f'chunk: {chunk}')
+                # input("waiting ...")
+                # print(sample_z[j:j+chunk].shape)
+                # print(sample_z[j:j+chunk])
                 out = g_ema([sample_z[j:j+chunk]],
                             sample_cam_extrinsics[j:j+chunk],
                             sample_focals[j:j+chunk],
